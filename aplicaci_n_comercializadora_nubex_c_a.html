@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comercializadora Nubex C.A. - Cotizaciones y Ventas</title>
+    <!-- Tailwind CSS para Estilos e Interfaz -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome para Iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- html2pdf para Exportar PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; font-size: 12pt; }
+            .print-container { border: none !important; shadow: none !important; padding: 0 !important; }
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen">
+
+    <!-- Notificaciones Toast -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- Encabezado Principal de la Aplicación -->
+    <header class="bg-blue-900 text-white shadow-md no-print">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <div class="bg-white p-2 rounded-xl text-blue-900 font-black text-xl shadow-inner">
+                    <i class="fa-solid fa-industry text-orange-500"></i>
+                </div>
+                <div>
+                    <h1 id="header-brand-title" class="font-bold text-lg leading-tight tracking-wide uppercase">COMERCIALIZADORA NUBEX C.A.</h1>
+                    <p class="text-xs text-blue-200">Sistema de Cotizaciones y Notas de Entrega</p>
+                </div>
+            </div>
+
+            <!-- Tasa BCV Badge en vivo -->
+            <div id="bcv-badge" class="bg-blue-800/80 border border-blue-700/50 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-orange-300 flex items-center gap-2 shadow-sm">
+                <i class="fa-solid fa-chart-line"></i> Tasa BCV: Cargando...
+            </div>
+        </div>
+
+        <!-- Barra de Navegación / Pestañas -->
+        <nav class="bg-blue-950 px-4 border-t border-blue-800/40">
+            <div class="max-w-7xl mx-auto flex overflow-x-auto text-sm font-medium">
+                <button type="button" id="tab-creator" onclick="switchTab('creator')" class="px-5 py-3 border-b-2 border-orange-500 font-medium text-orange-400 flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-file-invoice"></i> Generar Recibo / Cotización
+                </button>
+                <button type="button" id="tab-catalog" onclick="switchTab('catalog')" class="px-5 py-3 border-b-2 border-transparent font-medium text-blue-200 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-boxes-stacked"></i> Catálogo y Precios
+                </button>
+                <button type="button" id="tab-clients" onclick="switchTab('clients')" class="px-5 py-3 border-b-2 border-transparent font-medium text-blue-200 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-address-book"></i> Clientes
+                </button>
+                <button type="button" id="tab-history" onclick="switchTab('history')" class="px-5 py-3 border-b-2 border-transparent font-medium text-blue-200 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Historial
+                </button>
+                <button type="button" id="tab-profile" onclick="switchTab('profile')" class="px-5 py-3 border-b-2 border-transparent font-medium text-blue-200 hover:text-white flex items-center gap-2 whitespace-nowrap">
+                    <i class="fa-solid fa-building"></i> Perfil Empresa
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="max-w-7xl mx-auto p-4 sm:p-6">
+
+        <!-- Pestaña 1: Generador de Documentos / Cotizaciones -->
+        <section id="sec-creator" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            <!-- Panel Izquierdo: Formulario de Configuración -->
+            <div class="lg:col-span-5 space-y-6 no-print">
+                <!-- Tipo y Moneda de Documento -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="font-bold text-blue-900 text-base border-b border-slate-100 pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-orange-500"></i> Datos del Documento
+                    </h2>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Tipo Documento</label>
+                            <select id="doc-type" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                                <option value="Cotización">Cotización</option>
+                                <option value="Nota de Entrega">Nota de Entrega</option>
+                                <option value="Factura Proforma">Factura Proforma</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Moneda del Recibo</label>
+                            <select id="doc-currency" onchange="changeCurrencyMode()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-bold text-blue-900">
+                                <option value="USD">Dólares ($ USD)</option>
+                                <option value="VES">Bolívares (Bs. VES)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-medium text-slate-600">Número de Control</label>
+                                <button type="button" onclick="resetDocCounter()" title="Reiniciar Conteo a 0001" class="text-[10px] text-orange-600 hover:text-orange-800 font-bold flex items-center gap-1">
+                                    <i class="fa-solid fa-rotate-right"></i> Reiniciar
+                                </button>
+                            </div>
+                            <input type="text" id="doc-number" value="COT-0001" oninput="updateDocumentPreview()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono text-sm font-bold text-slate-800">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Fecha</label>
+                            <input type="date" id="doc-date" onchange="updateDocumentPreview()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+                        </div>
+                    </div>
+
+                    <!-- Opciones Adicionales: IVA y Conversión BCV en Recibo -->
+                    <div class="border-t border-slate-100 pt-3 space-y-2">
+                        <label class="block text-xs font-semibold text-blue-900 mb-1">Opciones de Impuestos y Totales:</label>
+                        <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            <span class="text-xs text-slate-700 font-medium">Incluir IVA (16%)</span>
+                            <input type="checkbox" id="doc-include-tax" onchange="updateDocumentPreview()" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500 cursor-pointer">
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                            <span class="text-xs text-slate-700 font-medium">Mostrar Conversión y Tasa BCV</span>
+                            <input type="checkbox" id="doc-show-bcv" onchange="updateDocumentPreview()" class="w-4 h-4 text-orange-500 rounded focus:ring-orange-500 cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selección de Cliente -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                        <h2 class="font-bold text-blue-900 text-base flex items-center gap-2">
+                            <i class="fa-solid fa-user-tag text-orange-500"></i> Datos del Cliente
+                        </h2>
+                        <button type="button" onclick="openClientSelectModal()" class="text-xs bg-blue-50 text-blue-800 font-bold px-2.5 py-1 rounded-lg border border-blue-200 hover:bg-blue-100 transition">
+                            <i class="fa-solid fa-users"></i> Buscar Cliente
+                        </button>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre / Razón Social</label>
+                        <input type="text" id="client-name" placeholder="Ej: Inversiones Los Andes C.A." oninput="updateDocumentPreview()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">RIF / Cédula</label>
+                            <input type="text" id="client-id" placeholder="J-12345678-0" oninput="updateDocumentPreview()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono</label>
+                            <input type="text" id="client-phone" placeholder="0414-1234567" oninput="updateDocumentPreview()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Dirección Fiscal / Entrega</label>
+                        <input type="text" id="client-address" placeholder="Av. Principal, Edif. A, Local 1" oninput="updateDocumentPreview()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+                    </div>
+
+                    <button type="button" onclick="saveCurrentClient()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 rounded-lg text-xs transition border border-slate-300 flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-bookmark text-blue-900"></i> Guardar Cliente en Base de Datos
+                    </button>
+                </div>
+
+                <!-- Agregar Productos -->
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="font-bold text-blue-900 text-base border-b border-slate-100 pb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-cart-plus text-orange-500"></i> Agregar Productos al Documento
+                    </h2>
+
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Seleccionar Producto</label>
+                        <select id="product-select" onchange="onProductSelectChange()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                            <option value="">-- Seleccionar producto del catálogo --</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Cantidad / Litros</label>
+                            <input type="number" id="item-qty" value="1" min="0.1" step="any" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Precio Unitario (<span id="currency-label-unit">USD</span>)</label>
+                            <input type="number" id="item-price" step="0.01" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        </div>
+                    </div>
+
+                    <button type="button" onclick="addItemToCart()" class="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-lg text-sm transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-plus"></i> Agregar al Documento
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Derecho: Vista Previa del Documento -->
+            <div class="lg:col-span-7">
+                <div class="bg-white p-6 sm:p-8 rounded-xl shadow-md border border-slate-200 print-container space-y-6">
+                    <!-- Cabecera Factura / Cotización -->
+                    <div class="flex flex-col sm:flex-row justify-between items-center sm:items-start gap-4 border-b border-slate-200 pb-6">
+                        <div class="flex flex-col sm:flex-row items-center sm:items-center gap-4 text-center sm:text-left w-full sm:w-auto">
+                            <div id="preview-logo-container" class="w-24 h-24 bg-white rounded-xl border border-slate-200 flex items-center justify-center overflow-hidden shrink-0 shadow-sm p-1 mx-auto sm:mx-0">
+                                <i class="fa-solid fa-industry text-blue-600 text-3xl"></i>
+                            </div>
+                            <div class="space-y-0.5">
+                                <h3 id="preview-company-name" class="font-bold text-blue-900 text-lg uppercase tracking-tight">COMERCIALIZADORA NUBEX C.A.</h3>
+                                <p id="preview-company-rif" class="text-xs text-slate-500 font-mono">RIF: J-50000000-0</p>
+                                <p id="preview-company-phone" class="text-xs text-slate-500">Tel: +58 412 0000000</p>
+                                <p id="preview-company-email" class="text-xs text-slate-500">Correo: contacto@nubex.com</p>
+                            </div>
+                        </div>
+                        <div class="text-center sm:text-right w-full sm:w-auto bg-slate-50 sm:bg-transparent p-3 sm:p-0 rounded-lg border sm:border-0 border-slate-100">
+                            <span id="preview-doctype-badge" class="bg-orange-100 text-orange-800 text-xs font-bold px-3 py-1 rounded-full uppercase border border-orange-200">Cotización</span>
+                            <p id="preview-docnumber" class="font-mono font-bold text-blue-900 text-base mt-2">COT-0001</p>
+                            <p id="preview-date" class="text-xs text-slate-500 mt-0.5">Fecha: --/--/----</p>
+                        </div>
+                    </div>
+
+                    <!-- Datos del Cliente en Vista Previa -->
+                    <div class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs space-y-1">
+                        <p class="font-semibold text-blue-800 uppercase tracking-wider text-[10px]">Cliente:</p>
+                        <p id="preview-client-name" class="font-bold text-slate-900 text-sm">-- Sin especificar cliente --</p>
+                        <p class="text-slate-600">RIF/Cédula: <span id="preview-client-id" class="font-mono">--</span> | Teléfono: <span id="preview-client-phone">--</span></p>
+                        <p class="text-slate-600">Dirección: <span id="preview-client-address">--</span></p>
+                    </div>
+
+                    <!-- Tabla de Ítems -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-blue-900 text-white font-semibold text-xs uppercase">
+                                <tr>
+                                    <th class="p-3 rounded-l-lg">Código / Descripción</th>
+                                    <th class="p-3 text-center">Cant.</th>
+                                    <th class="p-3 text-right">P. Unit</th>
+                                    <th class="p-3 text-right">Total</th>
+                                    <th class="p-3 text-center rounded-r-lg no-print">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-table-body" class="divide-y divide-slate-100">
+                                <tr>
+                                    <td colspan="5" class="text-center py-6 text-slate-400 italic">No hay productos agregados en este documento.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Totales y Resumen de Pago -->
+                    <div class="flex flex-col sm:flex-row justify-between items-start border-t border-slate-200 pt-4 gap-4">
+                        <div class="text-xs text-slate-500 space-y-1 max-w-xs">
+                            <p class="font-bold text-slate-700">TÉRMINOS DE PAGO Y NOTAS:</p>
+                            <p>• Precios sujetos a cambio sin previo aviso.</p>
+                            <p>• Validez de la cotización: 3 días continuos.</p>
+                        </div>
+
+                        <div class="w-full sm:w-64 space-y-2 text-right">
+                            <div class="flex justify-between text-xs text-slate-600 font-medium">
+                                <span>Subtotal:</span>
+                                <span id="preview-subtotal" class="font-mono">$0.00</span>
+                            </div>
+                            <div id="preview-tax-row" class="flex justify-between text-xs text-slate-600 font-medium hidden">
+                                <span>IVA (16%):</span>
+                                <span id="preview-tax" class="font-mono">$0.00</span>
+                            </div>
+                            <div class="flex justify-between text-base font-bold text-blue-900 border-t border-slate-200 pt-2">
+                                <span>TOTAL A PAGAR:</span>
+                                <span id="preview-total" class="font-mono">$0.00</span>
+                            </div>
+
+                            <!-- Fila BCV Opcional -->
+                            <div id="preview-bcv-row" class="bg-orange-50 border border-orange-200 p-2.5 rounded-lg text-right space-y-0.5 mt-3 hidden">
+                                <p class="text-[11px] font-bold text-orange-900 uppercase">Equivalente en Bolívares:</p>
+                                <p id="preview-total-ves" class="text-base font-black text-orange-700 font-mono">Bs. 0.00</p>
+                                <p id="preview-bcv-rate-text" class="text-[10px] text-orange-800 font-mono">Tasa Referencial: Bs. -- / USD</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de Acción y Exportación -->
+                <div class="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3 no-print">
+                    <button type="button" onclick="confirmAndSaveDoc()" class="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 col-span-2 sm:col-span-1">
+                        <i class="fa-solid fa-floppy-disk text-sm"></i> Guardar y Siguiente
+                    </button>
+                    <button type="button" onclick="exportToPDF()" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-file-pdf text-sm"></i> Descargar PDF
+                    </button>
+                    <button type="button" onclick="printDocument()" class="bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-print text-sm"></i> Imprimir Recibo
+                    </button>
+                    <button type="button" onclick="sendWhatsAppMessage()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-brands fa-whatsapp text-sm"></i> Enviar por WS
+                    </button>
+                    <button type="button" onclick="copyAsPlainText()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-copy text-sm"></i> Copiar Texto
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pestaña 2: Catálogo y Precios -->
+        <section id="sec-catalog" class="space-y-6 hidden">
+            <div class="flex justify-between items-center flex-wrap gap-4 bg-white p-4 rounded-xl border border-slate-200">
+                <h2 class="font-bold text-blue-900 text-lg">Catálogo de Productos y Limpieza</h2>
+                <button type="button" onclick="openProductModal()" class="bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-plus"></i> Nuevo Producto
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-blue-900 text-white font-semibold text-xs uppercase">
+                            <tr>
+                                <th class="p-3">Código</th>
+                                <th class="p-3">Nombre del Producto</th>
+                                <th class="p-3">Presentación</th>
+                                <th class="p-3 text-right">Costo ($)</th>
+                                <th class="p-3 text-center">Margen Venta (%)</th>
+                                <th class="p-3 text-right">P. Venta ($ USD)</th>
+                                <th class="p-3 text-right">P. Venta (Bs. VES)</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="catalog-table-body" class="divide-y divide-slate-100">
+                            <!-- Productos cargados dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pestaña 3: Base de Datos de Clientes -->
+        <section id="sec-clients" class="space-y-6 hidden">
+            <div class="flex justify-between items-center flex-wrap gap-4 bg-white p-4 rounded-xl border border-slate-200">
+                <h2 class="font-bold text-blue-900 text-lg">Directorio de Clientes</h2>
+                <button type="button" onclick="openClientModal()" class="bg-orange-500 hover:bg-orange-600 text-white font-medium px-4 py-2 rounded-lg text-sm transition flex items-center gap-2 shadow-sm">
+                    <i class="fa-solid fa-user-plus"></i> Agregar Cliente
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-blue-900 text-white font-semibold text-xs uppercase">
+                            <tr>
+                                <th class="p-3">Nombre / Razon Social</th>
+                                <th class="p-3">RIF / Cédula</th>
+                                <th class="p-3">Teléfono</th>
+                                <th class="p-3">Dirección</th>
+                                <th class="p-3 text-center">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clients-table-body" class="divide-y divide-slate-100">
+                            <!-- Clientes cargados dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pestaña 4: Historial de Cotizaciones -->
+        <section id="sec-history" class="space-y-6 hidden">
+            <div class="flex justify-between items-center flex-wrap gap-4 bg-white p-4 rounded-xl border border-slate-200">
+                <h2 class="font-bold text-blue-900 text-lg">Historial de Recibos y Cotizaciones</h2>
+                <button type="button" onclick="clearHistory()" class="bg-red-50 text-red-600 hover:bg-red-100 font-semibold px-4 py-2 rounded-lg text-xs transition border border-red-200">
+                    <i class="fa-solid fa-trash"></i> Vaciar Historial
+                </button>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-blue-900 text-white font-semibold text-xs uppercase">
+                            <tr>
+                                <th class="p-3">Tipo</th>
+                                <th class="p-3">N° Control</th>
+                                <th class="p-3">Fecha</th>
+                                <th class="p-3">Cliente</th>
+                                <th class="p-3 text-right">Monto Total</th>
+                                <th class="p-3 text-center">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body" class="divide-y divide-slate-100">
+                            <!-- Historial cargado dinámicamente -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pestaña 5: Perfil de la Empresa y Logo -->
+        <section id="sec-profile" class="max-w-2xl mx-auto space-y-6 hidden">
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-5">
+                <h2 class="font-bold text-blue-900 text-lg border-b border-slate-100 pb-2 flex items-center gap-2">
+                    <i class="fa-solid fa-building text-orange-500"></i> Datos de Comercializadora Nubex C.A.
+                </h2>
+
+                <div class="flex items-center gap-4">
+                    <div id="profile-logo-preview" class="w-20 h-20 bg-slate-100 rounded-xl border border-slate-300 flex items-center justify-center overflow-hidden shrink-0">
+                        <i class="fa-solid fa-image text-slate-400 text-2xl"></i>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Logo de la Empresa</label>
+                        <input type="file" id="profile-logo-input" accept="image/*" onchange="handleLogoUpload(event)" class="text-xs text-slate-500 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+                </div>
+
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Nombre Comercial de la Empresa</label>
+                        <input type="text" id="profile-name" value="COMERCIALIZADORA NUBEX C.A." class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-bold">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">RIF de la Empresa</label>
+                            <input type="text" id="profile-rif" value="J-50000000-0" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono Principal</label>
+                            <input type="text" id="profile-phone" value="+58 412 0000000" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Correo Electrónico</label>
+                            <input type="email" id="profile-email" placeholder="contacto@nubex.com" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-slate-600 mb-1">Dirección Corta</label>
+                            <input type="text" id="profile-address" placeholder="Valencia, Edo. Carabobo" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+                        </div>
+                    </div>
+                </div>
+
+                <button type="button" onclick="saveCompanyProfile()" class="w-full bg-blue-900 hover:bg-blue-950 text-white font-bold py-3 rounded-lg transition shadow-md flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar Configuración de Perfil
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Modal para Seleccionar Cliente Guardado -->
+    <div id="client-select-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-2">
+                <h3 class="font-bold text-blue-900 text-lg">Seleccionar Cliente</h3>
+                <button type="button" onclick="closeClientSelectModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="client-modal-list" class="divide-y divide-slate-100 max-h-60 overflow-y-auto">
+                <!-- Lista de clientes -->
+            </div>
+            <button type="button" onclick="closeClientSelectModal()" class="w-full bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2 rounded-lg transition text-xs">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar / Editar Cliente -->
+    <div id="client-edit-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <h3 class="font-bold text-blue-900 text-lg border-b border-slate-100 pb-2">Nuevo Cliente</h3>
+            <input type="hidden" id="modal-client-id-ref">
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Nombre / Razón Social</label>
+                <input type="text" id="modal-client-name" placeholder="Ej: Distribuidora El Sol C.A." class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">RIF / Cédula</label>
+                    <input type="text" id="modal-client-rif" placeholder="J-12345678-0" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono text-xs">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Teléfono</label>
+                    <input type="text" id="modal-client-phone" placeholder="0424-1234567" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Dirección Fiscal</label>
+                <input type="text" id="modal-client-address" placeholder="Av. Bolívar, Centro" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none text-xs">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeClientModal()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2.5 rounded-lg transition">Cancelar</button>
+                <button type="button" onclick="saveClientFromModal()" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-lg transition">Guardar Cliente</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Agregar / Editar Producto con Código SKU -->
+    <div id="product-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6 space-y-4">
+            <h3 id="product-modal-title" class="font-bold text-blue-900 text-lg border-b border-slate-100 pb-2">Nuevo Producto</h3>
+            <input type="hidden" id="modal-prod-id">
+            <div class="grid grid-cols-3 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Código / SKU</label>
+                    <input type="text" id="modal-prod-code" placeholder="PROD-01" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none font-mono text-xs">
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Nombre del Producto</label>
+                    <input type="text" id="modal-prod-name" placeholder="Ej: Cloro Concentrado" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Presentación / Envase</label>
+                <input type="text" id="modal-prod-presentation" placeholder="Ej: Envase de 1 Litro, Bidón 5L, Tambor" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Costo Base ($ USD)</label>
+                    <input type="number" id="modal-prod-cost" step="0.01" placeholder="1.00" oninput="calculateModalFromCost()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 mb-1">Margen Ganancia (%)</label>
+                    <input type="number" id="modal-prod-margin" step="0.1" value="50" placeholder="50" oninput="calculateModalFromCost()" class="w-full p-2.5 bg-slate-50 rounded-lg border border-slate-300 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-slate-600 mb-1">Precio Final de Venta ($ USD)</label>
+                <input type="number" id="modal-prod-price" step="0.01" placeholder="2.00" oninput="calculateModalFromPrice()" class="w-full p-2.5 bg-blue-50 text-blue-900 font-bold rounded-lg border border-blue-200 focus:ring-2 focus:ring-orange-500 focus:outline-none">
+            </div>
+            <div class="flex gap-3 pt-2">
+                <button type="button" onclick="closeProductModal()" class="w-1/2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-medium py-2.5 rounded-lg transition">Cancelar</button>
+                <button type="button" onclick="saveProductFromModal()" class="w-1/2 bg-orange-500 hover:bg-orange-600 text-white font-medium py-2.5 rounded-lg transition">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Principal JavaScript Integrado -->
+    <script>
+        function checkCloudDatabase() { console.log("Cloud db active."); }
+        function forceCloudSync() { console.log("Sync active."); }
+
+        window.products = JSON.parse(localStorage.getItem('clean_products') || JSON.stringify([
+            { id: '1', code: 'CLO-01', name: 'Cloro Tradicional', presentation: 'Envase 1 Litro', cost: 1.00, margin: 50, price: 2.00 },
+            { id: '2', code: 'DES-05', name: 'Desinfectante Aroma Lavanda', presentation: 'Bidón 5 Litros', cost: 4.00, margin: 50, price: 8.00 },
+            { id: '3', code: 'DET-01', name: 'Detergente Líquido Multiuso', presentation: 'Envase 1 Litro', cost: 1.50, margin: 50, price: 3.00 },
+            { id: '4', code: 'JAB-05', name: 'Jabón Líquido para Manos', presentation: 'Frasco 500 ml', cost: 1.20, margin: 50, price: 2.40 }
+        ]));
+        window.cart = [];
+        window.historyDocs = JSON.parse(localStorage.getItem('clean_history') || '[]');
+        window.clients = JSON.parse(localStorage.getItem('clean_clients') || '[]');
+        
+        window.docCounters = JSON.parse(localStorage.getItem('clean_counters_v2') || JSON.stringify({
+            'Cotización': 1,
+            'Nota de Entrega': 1,
+            'Factura Proforma': 1
+        }));
+
+        window.companyProfile = JSON.parse(localStorage.getItem('clean_profile') || JSON.stringify({
+            name: "COMERCIALIZADORA NUBEX C.A.",
+            rif: "J-50000000-0",
+            phone: "+58 412 0000000",
+            email: "",
+            address: "",
+            logo: ""
+        }));
+        window.bcvRate = 36.50;
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            const toast = document.createElement('div');
+            let bg = 'bg-slate-800 text-white';
+            if (type === 'success') bg = 'bg-teal-600 text-white';
+            if (type === 'error') bg = 'bg-red-600 text-white';
+
+            toast.className = `${bg} px-4 py-2.5 rounded-xl text-xs font-medium shadow-lg pointer-events-auto transition transform translate-y-2 opacity-0 flex items-center gap-2`;
+            toast.innerHTML = `<i class="fa-solid fa-circle-info"></i> ${message}`;
+            container.appendChild(toast);
+
+            setTimeout(() => { toast.classList.remove('translate-y-2', 'opacity-0'); }, 50);
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Ejecución automática inmediata al abrir la app
+        window.onload = function() {
+            checkCloudDatabase();
+            loadProfileFields();
+            renderCatalogTable();
+            renderClientsTable();
+            updateProductSelectOptions();
+            
+            // Asignar fecha actual automáticamente al abrir
+            const dateInput = document.getElementById('doc-date');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                let mm = today.getMonth() + 1;
+                let dd = today.getDate();
+                if (mm < 10) mm = '0' + mm;
+                if (dd < 10) dd = '0' + dd;
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+            }
+            
+            updateDocNumberBySequence();
+            updateDocumentPreview();
+            renderHistoryTable();
+            
+            // Consultar Tasa BCV automáticamente en vivo
+            fetchBCVRate();
+        };
+
+        function fetchBCVRate() {
+            const badge = document.getElementById('bcv-badge');
+            fetch('https://pydolarvenezuela-api.vercel.app/api/v1/dollar?monitor=bcv')
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.price) {
+                        window.bcvRate = parseFloat(data.price);
+                        if (badge) {
+                            badge.innerHTML = `<i class="fa-solid fa-chart-line"></i> Tasa BCV: Bs. ${window.bcvRate.toFixed(2)}`;
+                        }
+                        updateDocumentPreview();
+                        renderCatalogTable();
+                    }
+                })
+                .catch(() => {
+                    window.bcvRate = 36.50;
+                    if (badge) {
+                        badge.innerHTML = `<i class="fa-solid fa-chart-line"></i> Tasa BCV: Bs. ${window.bcvRate.toFixed(2)}`;
+                    }
+                    updateDocumentPreview();
+                    renderCatalogTable();
+                });
+        }
+
+        function getPrefixForDocType(type) {
+            if (type === 'Nota de Entrega') return 'NE';
+            if (type === 'Factura Proforma') return 'FP';
+            return 'COT';
+        }
+
+        function updateDocNumberBySequence() {
+            const docTypeElem = document.getElementById('doc-type');
+            if (!docTypeElem) return;
+            const docType = docTypeElem.value;
+            const prefix = getPrefixForDocType(docType);
+            const count = window.docCounters[docType] || 1;
+            const formatted = `${prefix}-${String(count).padStart(4, '0')}`;
+            
+            const docNumElem = document.getElementById('doc-number');
+            if (docNumElem) docNumElem.value = formatted;
+            updateDocumentPreview();
+        }
+
+        function incrementDocCounter() {
+            const docTypeElem = document.getElementById('doc-type');
+            if (!docTypeElem) return;
+            const docType = docTypeElem.value;
+            window.docCounters[docType] = (window.docCounters[docType] || 1) + 1;
+            localStorage.setItem('clean_counters_v2', JSON.stringify(window.docCounters));
+            updateDocNumberBySequence();
+        }
+
+        function resetDocCounter() {
+            const docTypeElem = document.getElementById('doc-type');
+            const docType = docTypeElem ? docTypeElem.value : 'Cotización';
+            window.docCounters[docType] = 1;
+            localStorage.setItem('clean_counters_v2', JSON.stringify(window.docCounters));
+            updateDocNumberBySequence();
+            showToast(`Contador para ${docType} reiniciado a 0001`, 'info');
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.id === 'doc-type') {
+                updateDocNumberBySequence();
+            }
+        });
+
+        function confirmAndSaveDoc() {
+            if (window.cart.length === 0) {
+                showToast('Agrega al menos un producto antes de guardar', 'error');
+                return;
+            }
+
+            const currentDocNum = document.getElementById('doc-number').value;
+            saveDocumentToHistory();
+            
+            window.cart = [];
+            updateCartTable();
+            
+            const dateInput = document.getElementById('doc-date');
+            if (dateInput) {
+                const today = new Date();
+                const yyyy = today.getFullYear();
+                let mm = today.getMonth() + 1;
+                let dd = today.getDate();
+                if (mm < 10) mm = '0' + mm;
+                if (dd < 10) dd = '0' + dd;
+                dateInput.value = `${yyyy}-${mm}-${dd}`;
+                updateDocumentPreview();
+            }
+            
+            showToast(`¡Documento ${currentDocNum} guardado con éxito!`, 'success');
+        }
+
+        function saveCurrentClient() {
+            const name = document.getElementById('client-name').value;
+            const rif = document.getElementById('client-id').value;
+            const phone = document.getElementById('client-phone').value;
+            const address = document.getElementById('client-address').value;
+
+            if (!name) {
+                showToast('Ingresa el nombre del cliente', 'error');
+                return;
+            }
+
+            window.clients.push({ id: Date.now().toString(), name, rif, phone, address });
+            localStorage.setItem('clean_clients', JSON.stringify(window.clients));
+            renderClientsTable();
+            showToast('¡Cliente guardado!', 'success');
+        }
+
+        function renderClientsTable() {
+            const tbody = document.getElementById('clients-table-body');
+            if (!tbody) return;
+            if (window.clients.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 italic">No hay clientes guardados.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = window.clients.map(c => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3 font-medium text-slate-800">${c.name}</td>
+                    <td class="p-3 text-slate-600 font-mono text-xs">${c.rif || 'S/N'}</td>
+                    <td class="p-3 text-slate-600">${c.phone || 'S/N'}</td>
+                    <td class="p-3 text-slate-600">${c.address || 'S/N'}</td>
+                    <td class="p-3 text-center space-x-2">
+                        <button type="button" onclick="useClient('${c.id}')" title="Usar" class="text-teal-600 hover:text-teal-800 p-1"><i class="fa-solid fa-file-arrow-up"></i></button>
+                        <button type="button" onclick="deleteClient('${c.id}')" title="Eliminar" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function useClient(id) {
+            const client = window.clients.find(c => c.id === id);
+            if (!client) return;
+            document.getElementById('client-name').value = client.name;
+            document.getElementById('client-id').value = client.rif || '';
+            document.getElementById('client-phone').value = client.phone || '';
+            document.getElementById('client-address').value = client.address || '';
+            updateDocumentPreview();
+            switchTab('creator');
+        }
+
+        function deleteClient(id) {
+            window.clients = window.clients.filter(c => c.id !== id);
+            localStorage.setItem('clean_clients', JSON.stringify(window.clients));
+            renderClientsTable();
+        }
+
+        function openClientSelectModal() {
+            const container = document.getElementById('client-modal-list');
+            if (!container) return;
+            if (window.clients.length === 0) {
+                container.innerHTML = `<p class="text-center py-4 text-slate-400 text-sm italic">No hay clientes guardados.</p>`;
+            } else {
+                container.innerHTML = window.clients.map(c => `
+                    <div class="py-2.5 flex justify-between items-center hover:bg-slate-50 px-2 rounded-lg cursor-pointer transition" onclick="selectClientAndClose('${c.id}')">
+                        <div>
+                            <p class="font-medium text-slate-800 text-sm">${c.name}</p>
+                            <p class="text-xs text-slate-500">RIF: ${c.rif || 'N/A'}</p>
+                        </div>
+                        <span class="text-xs bg-teal-100 text-teal-800 font-bold px-2.5 py-1 rounded-lg">Seleccionar</span>
+                    </div>
+                `).join('');
+            }
+            document.getElementById('client-select-modal').classList.remove('hidden');
+        }
+
+        function closeClientSelectModal() {
+            document.getElementById('client-select-modal').classList.add('hidden');
+        }
+
+        function selectClientAndClose(id) {
+            useClient(id);
+            closeClientSelectModal();
+        }
+
+        function openClientModal() {
+            document.getElementById('client-edit-modal').classList.remove('hidden');
+        }
+        function closeClientModal() {
+            document.getElementById('client-edit-modal').classList.add('hidden');
+        }
+        function saveClientFromModal() {
+            saveCurrentClient();
+            closeClientModal();
+        }
+
+        function switchTab(tabId) {
+            ['creator', 'catalog', 'history', 'profile', 'clients'].forEach(id => {
+                const sec = document.getElementById('sec-' + id);
+                const tab = document.getElementById('tab-' + id);
+                if (sec && tab) {
+                    if (id === tabId) {
+                        sec.classList.remove('hidden');
+                        tab.className = 'px-5 py-3 border-b-2 border-orange-500 font-medium text-orange-400 flex items-center gap-2 whitespace-nowrap';
+                    } else {
+                        sec.classList.add('hidden');
+                        tab.className = 'px-5 py-3 border-b-2 border-transparent font-medium text-blue-200 hover:text-white flex items-center gap-2 whitespace-nowrap';
+                    }
+                }
+            });
+            if (tabId === 'creator') updateProductSelectOptions();
+            else if (tabId === 'catalog') renderCatalogTable();
+            else if (tabId === 'clients') renderClientsTable();
+            else if (tabId === 'history') renderHistoryTable();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function loadProfileFields() {
+            document.getElementById('profile-name').value = window.companyProfile.name || "";
+            document.getElementById('profile-rif').value = window.companyProfile.rif || "";
+            document.getElementById('profile-phone').value = window.companyProfile.phone || "";
+            document.getElementById('profile-email').value = window.companyProfile.email || "";
+            document.getElementById('profile-address').value = window.companyProfile.address || "";
+
+            if (window.companyProfile.name) {
+                document.getElementById('header-brand-title').innerText = window.companyProfile.name;
+            }
+            const logoPreview = document.getElementById('profile-logo-preview');
+            if (window.companyProfile.logo && logoPreview) {
+                logoPreview.innerHTML = `<img src="${window.companyProfile.logo}" class="w-full h-full object-cover">`;
+            }
+            updateProfilePreviewInDoc();
+        }
+
+        function handleLogoUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                window.companyProfile.logo = e.target.result;
+                document.getElementById('profile-logo-preview').innerHTML = `<img src="${window.companyProfile.logo}" class="w-full h-full object-cover">`;
+                updateProfilePreviewInDoc();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateProfilePreviewInDoc() {
+            document.getElementById('preview-company-name').innerText = window.companyProfile.name || "COMERCIALIZADORA NUBEX C.A.";
+            document.getElementById('preview-company-rif').innerText = `RIF: ${window.companyProfile.rif || ''}`;
+            document.getElementById('preview-company-phone').innerText = `Tel: ${window.companyProfile.phone || ''}`;
+            
+            const emailElem = document.getElementById('preview-company-email');
+            if (window.companyProfile.email) {
+                emailElem.innerText = `Correo: ${window.companyProfile.email}`;
+                emailElem.classList.remove('hidden');
+            } else {
+                emailElem.classList.add('hidden');
+            }
+            
+            const logoContainer = document.getElementById('preview-logo-container');
+            if (window.companyProfile.logo) {
+                logoContainer.innerHTML = `<img src="${window.companyProfile.logo}" class="w-full h-full object-contain mx-auto">`;
+            } else {
+                logoContainer.innerHTML = `<i class="fa-solid fa-industry text-blue-600 text-3xl"></i>`;
+            }
+        }
+
+        function saveCompanyProfile() {
+            window.companyProfile.name = document.getElementById('profile-name').value || "COMERCIALIZADORA NUBEX C.A.";
+            window.companyProfile.rif = document.getElementById('profile-rif').value || "J-50000000-0";
+            window.companyProfile.phone = document.getElementById('profile-phone').value || "+58 412 0000000";
+            window.companyProfile.email = document.getElementById('profile-email').value || "";
+            window.companyProfile.address = document.getElementById('profile-address').value || "";
+
+            document.getElementById('header-brand-title').innerText = window.companyProfile.name;
+            localStorage.setItem('clean_profile', JSON.stringify(window.companyProfile));
+            updateProfilePreviewInDoc();
+            showToast('Perfil guardado exitosamente', 'success');
+        }
+
+        function updateProductSelectOptions() {
+            const select = document.getElementById('product-select');
+            if (!select) return;
+            const currency = document.getElementById('doc-currency').value;
+            const symbol = currency === 'VES' ? 'Bs. ' : '$';
+
+            select.innerHTML = '<option value="">-- Seleccionar producto del catálogo --</option>' + 
+                window.products.map(p => {
+                    const displayPrice = currency === 'VES' ? (p.price * window.bcvRate).toFixed(2) : p.price.toFixed(2);
+                    const codeDisplay = p.code ? `[${p.code}] ` : '';
+                    return `<option value="${p.id}">${codeDisplay}${p.name} - ${p.presentation} (${symbol}${displayPrice})</option>`;
+                }).join('');
+        }
+
+        function onProductSelectChange() {
+            const prodId = document.getElementById('product-select').value;
+            const priceInput = document.getElementById('item-price');
+            if (!priceInput || !prodId) {
+                if (priceInput) priceInput.value = '';
+                return;
+            }
+            const prod = window.products.find(p => p.id === prodId);
+            if (prod) {
+                const currency = document.getElementById('doc-currency').value;
+                const displayPrice = currency === 'VES' ? (prod.price * window.bcvRate) : prod.price;
+                priceInput.value = displayPrice.toFixed(2);
+            }
+        }
+
+        function renderCatalogTable() {
+            const tbody = document.getElementById('catalog-table-body');
+            if (!tbody) return;
+            if (window.products.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" class="text-center py-6 text-slate-400 italic">No hay productos.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = window.products.map(p => {
+                const priceVES = (p.price * window.bcvRate).toFixed(2);
+                return `
+                    <tr class="hover:bg-slate-50 transition">
+                        <td class="p-3 font-mono text-xs font-bold text-slate-500">${p.code || 'S/C'}</td>
+                        <td class="p-3 font-semibold text-slate-800">${p.name}</td>
+                        <td class="p-3 text-slate-600 text-xs">${p.presentation}</td>
+                        <td class="p-3 text-right font-mono text-slate-600">$${(p.cost || 0).toFixed(2)}</td>
+                        <td class="p-3 text-center font-mono text-orange-600 font-bold">${(p.margin || 0).toFixed(1)}%</td>
+                        <td class="p-3 text-right font-mono font-bold text-blue-900">$${p.price.toFixed(2)}</td>
+                        <td class="p-3 text-right font-mono text-xs text-slate-600">Bs. ${priceVES}</td>
+                        <td class="p-3 text-center space-x-2">
+                            <button type="button" onclick="editProduct('${p.id}')" title="Editar" class="text-blue-600 hover:text-blue-800 p-1"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button type="button" onclick="deleteProduct('${p.id}')" title="Eliminar" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-trash"></i></button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function calculateModalFromCost() {
+            const cost = parseFloat(document.getElementById('modal-prod-cost').value) || 0;
+            const margin = parseFloat(document.getElementById('modal-prod-margin').value) || 0;
+            const priceInput = document.getElementById('modal-prod-price');
+            if (cost <= 0) { priceInput.value = ''; return; }
+            if (margin >= 100) { priceInput.value = (cost * 2).toFixed(2); return; }
+            const price = cost / (1 - (margin / 100));
+            priceInput.value = price.toFixed(2);
+        }
+
+        function calculateModalFromPrice() {
+            const cost = parseFloat(document.getElementById('modal-prod-cost').value) || 0;
+            const price = parseFloat(document.getElementById('modal-prod-price').value) || 0;
+            const marginInput = document.getElementById('modal-prod-margin');
+            if (price <= 0 || cost <= 0 || price <= cost) { marginInput.value = '0'; return; }
+            const margin = ((price - cost) / price) * 100;
+            marginInput.value = margin.toFixed(1);
+        }
+
+        function openProductModal() {
+            document.getElementById('modal-prod-id').value = '';
+            document.getElementById('modal-prod-code').value = '';
+            document.getElementById('modal-prod-name').value = '';
+            document.getElementById('modal-prod-presentation').value = '';
+            document.getElementById('modal-prod-cost').value = '';
+            document.getElementById('modal-prod-margin').value = '50';
+            document.getElementById('modal-prod-price').value = '';
+            document.getElementById('product-modal-title').innerText = 'Nuevo Producto';
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function closeProductModal() {
+            document.getElementById('product-modal').classList.add('hidden');
+        }
+
+        function editProduct(id) {
+            const prod = window.products.find(p => p.id === id);
+            if (!prod) return;
+            document.getElementById('modal-prod-id').value = prod.id;
+            document.getElementById('modal-prod-code').value = prod.code || '';
+            document.getElementById('modal-prod-name').value = prod.name;
+            document.getElementById('modal-prod-presentation').value = prod.presentation;
+            document.getElementById('modal-prod-cost').value = prod.cost || 0;
+            document.getElementById('modal-prod-margin').value = prod.margin || 50;
+            document.getElementById('modal-prod-price').value = prod.price;
+            document.getElementById('product-modal-title').innerText = 'Editar Producto';
+            document.getElementById('product-modal').classList.remove('hidden');
+        }
+
+        function saveProductFromModal() {
+            const id = document.getElementById('modal-prod-id').value;
+            const code = document.getElementById('modal-prod-code').value.trim();
+            const name = document.getElementById('modal-prod-name').value.trim();
+            const presentation = document.getElementById('modal-prod-presentation').value.trim();
+            const cost = parseFloat(document.getElementById('modal-prod-cost').value) || 0;
+            const margin = parseFloat(document.getElementById('modal-prod-margin').value) || 0;
+            let price = parseFloat(document.getElementById('modal-prod-price').value) || 0;
+
+            if (cost > 0 && margin > 0 && margin < 100) {
+                price = cost / (1 - (margin / 100));
+            }
+            if (!name || !presentation || price <= 0) {
+                showToast('Completa los datos del producto', 'error');
+                return;
+            }
+
+            if (id) {
+                const index = window.products.findIndex(p => p.id === id);
+                if (index >= 0) window.products[index] = { id, code, name, presentation, cost, margin, price };
+            } else {
+                window.products.push({ id: Date.now().toString(), code, name, presentation, cost, margin, price });
+            }
+
+            localStorage.setItem('clean_products', JSON.stringify(window.products));
+            renderCatalogTable();
+            updateProductSelectOptions();
+            closeProductModal();
+            showToast('Producto guardado', 'success');
+        }
+
+        function deleteProduct(id) {
+            window.products = window.products.filter(p => p.id !== id);
+            localStorage.setItem('clean_products', JSON.stringify(window.products));
+            renderCatalogTable();
+            updateProductSelectOptions();
+        }
+
+        function changeCurrencyMode() {
+            const currency = document.getElementById('doc-currency').value;
+            document.getElementById('currency-label-unit').innerText = currency === 'VES' ? 'Bs. VES' : 'USD';
+            updateProductSelectOptions();
+            onProductSelectChange();
+            updateCartTable();
+        }
+
+        function addItemToCart() {
+            const select = document.getElementById('product-select');
+            const prodId = select.value;
+            const qty = parseFloat(document.getElementById('item-qty').value) || 0;
+            const price = parseFloat(document.getElementById('item-price').value) || 0;
+
+            if (!prodId || qty <= 0) {
+                showToast('Selecciona producto y cantidad', 'error');
+                return;
+            }
+            const prod = window.products.find(p => p.id === prodId);
+            if (!prod) return;
+
+            window.cart.push({
+                id: Date.now().toString(),
+                code: prod.code || '',
+                name: prod.name,
+                presentation: prod.presentation,
+                qty: qty,
+                price: price,
+                total: qty * price
+            });
+
+            document.getElementById('item-qty').value = '1';
+            select.value = '';
+            document.getElementById('item-price').value = '';
+            updateCartTable();
+            showToast('Producto agregado', 'success');
+        }
+
+        function removeItemFromCart(index) {
+            window.cart.splice(index, 1);
+            updateCartTable();
+        }
+
+        function updateCartTable() {
+            const tbody = document.getElementById('cart-table-body');
+            const currency = document.getElementById('doc-currency').value;
+            const symbol = currency === 'VES' ? 'Bs. ' : '$';
+
+            if (window.cart.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-slate-400 italic">No hay productos agregados.</td></tr>`;
+            } else {
+                tbody.innerHTML = window.cart.map((item, idx) => `
+                    <tr class="hover:bg-slate-50 transition text-xs sm:text-sm">
+                        <td class="p-3 font-medium text-slate-800">
+                            ${item.code ? `<span class="font-mono text-slate-400 text-xs mr-1">[${item.code}]</span>` : ''}
+                            ${item.name} <span class="text-slate-400 text-xs">(${item.presentation})</span>
+                        </td>
+                        <td class="p-3 text-center font-mono">${item.qty}</td>
+                        <td class="p-3 text-right font-mono">${symbol}${item.price.toFixed(2)}</td>
+                        <td class="p-3 text-right font-mono font-semibold">${symbol}${item.total.toFixed(2)}</td>
+                        <td class="p-3 text-center no-print">
+                            <button type="button" onclick="removeItemFromCart(${idx})" class="text-red-500 hover:text-red-700 p-1"><i class="fa-solid fa-xmark"></i></button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+            updateDocumentPreview();
+        }
+
+        function updateDocumentPreview() {
+            const docType = document.getElementById('doc-type').value;
+            const docNum = document.getElementById('doc-number').value;
+            const docDate = document.getElementById('doc-date').value;
+            const clientName = document.getElementById('client-name').value;
+            const currency = document.getElementById('doc-currency').value;
+            const symbol = currency === 'VES' ? 'Bs. ' : '$';
+            const includeTax = document.getElementById('doc-include-tax').checked;
+            const showBcv = document.getElementById('doc-show-bcv').checked;
+
+            document.getElementById('preview-doctype-badge').innerText = docType;
+            document.getElementById('preview-docnumber').innerText = docNum;
+
+            if (docDate) {
+                const parts = docDate.split('-');
+                document.getElementById('preview-date').innerText = `Fecha: ${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+
+            document.getElementById('preview-client-name').innerText = clientName || '-- Sin especificar cliente --';
+            document.getElementById('preview-client-id').innerText = document.getElementById('client-id').value || '--';
+            document.getElementById('preview-client-phone').innerText = document.getElementById('client-phone').value || '--';
+            document.getElementById('preview-client-address').innerText = document.getElementById('client-address').value || '--';
+
+            let subtotal = 0;
+            window.cart.forEach(i => subtotal += i.total);
+            const taxAmount = includeTax ? (subtotal * 0.16) : 0;
+            const totalFinal = subtotal + taxAmount;
+
+            document.getElementById('preview-subtotal').innerText = `${symbol}${subtotal.toFixed(2)}`;
+            
+            const taxRow = document.getElementById('preview-tax-row');
+            if (includeTax) {
+                taxRow.classList.remove('hidden');
+                document.getElementById('preview-tax').innerText = `${symbol}${taxAmount.toFixed(2)}`;
+            } else {
+                taxRow.classList.add('hidden');
+            }
+
+            document.getElementById('preview-total').innerText = `${symbol}${totalFinal.toFixed(2)}`;
+
+            const bcvRow = document.getElementById('preview-bcv-row');
+            if (showBcv) {
+                bcvRow.classList.remove('hidden');
+                let totalVES = currency === 'USD' ? (totalFinal * window.bcvRate) : totalFinal;
+                document.getElementById('preview-total-ves').innerText = `Bs. ${totalVES.toFixed(2)}`;
+                document.getElementById('preview-bcv-rate-text').innerText = `Tasa Referencial: Bs. ${window.bcvRate.toFixed(2)} / USD`;
+            } else {
+                bcvRow.classList.add('hidden');
+            }
+        }
+
+        function printDocument() {
+            if (window.cart.length === 0) { showToast('Agrega productos', 'error'); return; }
+            saveDocumentToHistory();
+            window.print();
+        }
+
+        function exportToPDF() {
+            if (window.cart.length === 0) { showToast('Agrega productos', 'error'); return; }
+            saveDocumentToHistory();
+            const element = document.querySelector('.print-container');
+            const docNum = document.getElementById('doc-number').value || 'Documento';
+            html2pdf().set({
+                margin: [0.4, 0.4, 0.4, 0.4],
+                filename: `${docNum}_Nubex.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+            }).from(element).save();
+        }
+
+        function sendWhatsAppMessage() {
+            if (window.cart.length === 0) { showToast('Agrega productos', 'error'); return; }
+            saveDocumentToHistory();
+            const docType = document.getElementById('doc-type').value;
+            const docNum = document.getElementById('doc-number').value;
+            const clientName = document.getElementById('client-name').value || 'Cliente';
+            const currency = document.getElementById('doc-currency').value;
+            const symbol = currency === 'VES' ? 'Bs. ' : '$';
+            const showBcv = document.getElementById('doc-show-bcv').checked;
+
+            let total = 0;
+            let itemsList = window.cart.map(i => {
+                total += i.total;
+                return `• ${i.name} x${i.qty} -> ${symbol}${i.total.toFixed(2)}`;
+            }).join('\n');
+
+            let msg = `*${window.companyProfile.name}*\n${docType} N° ${docNum}\n\n${itemsList}\n\n*TOTAL: ${symbol}${total.toFixed(2)}*`;
+            if (showBcv && currency === 'USD') msg += `\n(Tasa BCV: Bs. ${window.bcvRate.toFixed(2)})`;
+
+            const clientPhone = document.getElementById('client-phone').value.replace(/\D/g, '');
+            if (clientPhone) window.open(`https://wa.me/${clientPhone}?text=${encodeURIComponent(msg)}`, '_blank');
+            else window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+
+        function copyAsPlainText() {
+            if (window.cart.length === 0) { showToast('Agrega productos', 'error'); return; }
+            saveDocumentToHistory();
+            let total = 0;
+            window.cart.forEach(i => total += i.total);
+            let text = `${window.companyProfile.name}\nDoc: ${document.getElementById('doc-number').value}\nTotal: $${total.toFixed(2)}`;
+            const temp = document.createElement('textarea');
+            temp.value = text;
+            document.body.appendChild(temp);
+            temp.select();
+            document.execCommand('copy');
+            document.body.removeChild(temp);
+            showToast('Copiado al portapapeles', 'success');
+        }
+
+        function saveDocumentToHistory() {
+            const docNum = document.getElementById('doc-number').value;
+            let total = 0;
+            window.cart.forEach(i => total += i.total);
+
+            const record = {
+                type: document.getElementById('doc-type').value,
+                number: docNum,
+                date: document.getElementById('doc-date').value,
+                client: document.getElementById('client-name').value || 'General',
+                currency: document.getElementById('doc-currency').value,
+                total: total,
+                items: [...window.cart]
+            };
+
+            const idx = window.historyDocs.findIndex(d => d.number === docNum);
+            if (idx >= 0) window.historyDocs[idx] = record;
+            else {
+                window.historyDocs.unshift(record);
+                incrementDocCounter();
+            }
+            localStorage.setItem('clean_history', JSON.stringify(window.historyDocs));
+            renderHistoryTable();
+        }
+
+        function renderHistoryTable() {
+            const tbody = document.getElementById('history-table-body');
+            if (!tbody) return;
+            if (window.historyDocs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-slate-400 italic">No hay historial.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = window.historyDocs.map((doc, idx) => `
+                <tr class="hover:bg-slate-50 transition">
+                    <td class="p-3"><span class="bg-orange-100 text-orange-800 font-bold text-xs px-2 py-0.5 rounded">${doc.type}</span></td>
+                    <td class="p-3 font-mono font-bold text-blue-900">${doc.number}</td>
+                    <td class="p-3 text-slate-600 text-xs">${doc.date}</td>
+                    <td class="p-3 font-medium text-slate-800">${doc.client}</td>
+                    <td class="p-3 text-right font-mono font-bold">${doc.currency === 'VES' ? 'Bs. ' : '$'}${doc.total.toFixed(2)}</td>
+                    <td class="p-3 text-center">
+                        <button type="button" onclick="loadDocFromHistory(${idx})" class="bg-blue-900 text-white text-xs px-2.5 py-1 rounded hover:bg-blue-800">Ver / Editar</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function loadDocFromHistory(index) {
+            const doc = window.historyDocs[index];
+            if (!doc) return;
+            document.getElementById('doc-type').value = doc.type;
+            document.getElementById('doc-number').value = doc.number;
+            document.getElementById('doc-date').value = doc.date;
+            document.getElementById('doc-currency').value = doc.currency || 'USD';
+            document.getElementById('client-name').value = doc.client;
+            window.cart = [...doc.items];
+            changeCurrencyMode();
+            switchTab('creator');
+        }
+
+        function clearHistory() {
+            window.historyDocs = [];
+            localStorage.removeItem('clean_history');
+            renderHistoryTable();
+            showToast('Historial vaciado', 'info');
+        }
+    </script>
+</body>
+</html>
